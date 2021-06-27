@@ -1,0 +1,38 @@
+clc; clear; close;
+
+tablo = readtable('CCPD.csv','Range','A1:E9560');
+matris = readmatrix('CCPD.csv','Range','A2:E9560');
+isnanVar = isnan(matris)
+
+find(matris == 0);
+modelSpec = 'PE ~ AT + V + AP + RH';
+mdl = fitlm(tablo,modelSpec);
+
+plotResiduals(mdl,'probability');
+
+ outlier = mdl.Residuals.Raw < -14;
+ outlier = find(outlier);
+ tablo(outlier,:) = [];
+ 
+tablo2 = readmatrix('CCPD.csv','Range','A2:E9560');
+tablo2(outlier,:) = [];
+tablo2(:,end)= []
+format short g
+
+minDegerler = min(tablo2)
+maxDegerler = max(tablo2)
+ortalamalar = mean(tablo2)
+stdSapmalar = std(tablo2)
+  
+
+mdl2 = step(mdl,'NSteps',10);
+
+coefCI(mdl2)
+
+testM = readmatrix('CCPD.csv', 'Range', 'A9561:D9569');
+yanitM = readmatrix('CCPD.csv', 'Range', 'E9561:E9569');
+tahmin = predict(mdl2,testM);
+[yanitM tahmin]
+
+plot(mdl2)
+anova(mdl2,'summary')
