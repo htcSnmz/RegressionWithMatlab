@@ -1,0 +1,68 @@
+clc; clear; close;
+X = readmatrix('diabetes-dataset.csv','Range','A2:H1991');
+Y = readmatrix('diabetes-dataset.csv','Range','I2:I1991');
+Y = logical(Y);
+
+isnan(X);
+a = X(:,2:end);
+find (a == 0);
+
+
+for i = 2:8
+    x = X(:,i);
+    zeroVar = find(x == 0);
+    x(zeroVar) = mean(x);
+    X(:,i) = x;   
+end
+
+
+mdl = fitglm(X,Y,'linear','Distribution','binomial');
+
+mdl2 = stepwiseglm(X,Y,'constant','Distribution','binomial','Upper','linear');
+
+plotDiagnostics(mdl2,'leverage')
+
+outliers = find(mdl2.Diagnostics.Leverage ...
+    > 5*mdl2.NumCoefficients/mdl2.NumObservations);
+
+X(:,[3,4,8]) = [];
+
+mdl3 = fitglm(X,Y,'linear','Distribution','binomial', ...
+    'PredictorVars',1:5,'Exclude',outliers);
+
+X(outliers,:)= [];
+
+minDegerler = min(X);
+maxDegerler = max(X);
+ortalamalar = mean(X);
+stdSapmalar = std(X);
+
+testX = readmatrix('diabetes-dataset.csv','Range','A1992:H2001');
+testY = readmatrix('diabetes-dataset.csv','Range','I1992:I2001');
+testX(:,[3,4,8]) = [];
+testY = logical(testY);
+Y(outliers,:)= [];
+
+
+tahmin = predict(mdl3,testX);
+for i = 1:size(tahmin)
+    if tahmin(i) < 0.5
+        tahmin(i) = 0;
+    else
+        tahmin(i) = 1;
+    end
+end
+tahmin = logical(tahmin);
+[testY tahmin]
+
+
+tahminDeger = predict(mdl3,X);
+for i=1:size(tahminDeger)
+    if tahminDeger(i) < 0.5
+        tahminDeger(i) = 0;
+    else
+        tahminDeger(i) = 1;
+    end
+end
+tahminDeger = logical(tahminDeger);
+confusionchart(Y,tahminDeger)
